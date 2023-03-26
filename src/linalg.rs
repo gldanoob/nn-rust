@@ -59,12 +59,20 @@ impl Matrix {
         result
     }
 
-    pub fn row(&self, i: usize) -> Vec<f64> {
-        let mut result = Vec::new();
+    pub fn get_row(&self, i: usize) -> Matrix {
+        let mut result = Matrix::new(1, self.n);
         for j in 0..self.n {
-            result.push(self[(i, j)]);
+            result[(0, j)] = self[(i, j)];
         }
         result
+    }
+
+    pub fn rows(&self) -> usize {
+        self.m
+    }
+
+    pub fn cols(&self) -> usize {
+        self.n
     }
 
     pub fn add(&self, other: &Matrix) -> Matrix {
@@ -82,6 +90,16 @@ impl Matrix {
         for i in 0..self.m {
             for j in 0..self.n {
                 result[(i, j)] = self[(i, j)] - other[(i, j)];
+            }
+        }
+        result
+    }
+
+    pub fn scale(&self, scalar: f64) -> Matrix {
+        let mut result = Matrix::new(self.m, self.n);
+        for i in 0..self.m {
+            for j in 0..self.n {
+                result[(i, j)] = self[(i, j)] * scalar;
             }
         }
         result
