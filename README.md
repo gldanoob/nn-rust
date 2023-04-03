@@ -1,4 +1,4 @@
-# Neural network variants from scratch
+# Neural network variants in Rust (no ndarray, ML crates)
 
 ## Multi-layer perception demo
 `cargo run --release`
