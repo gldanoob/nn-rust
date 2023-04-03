@@ -1,4 +1,5 @@
 use std::ops::*;
+
 #[derive(Debug, Clone)]
 pub struct Matrix {
     // M rows, N columns
@@ -106,6 +107,12 @@ impl Matrix {
     }
 
     pub fn dot(&self, other: &Matrix) -> Matrix {
+        if other.rows() != self.cols() {
+            panic!(
+                "Matrix dimensions do not match: {}x{} * {}x{}",
+                self.m, self.n, other.m, other.n
+            );
+        }
         let mut result = Matrix::new(self.m, other.n);
         for i in 0..self.m {
             for j in 0..other.n {
@@ -120,6 +127,12 @@ impl Matrix {
     }
 
     pub fn hadamard(&self, other: &Matrix) -> Matrix {
+        if self.size() != other.size() {
+            panic!(
+                "Matrix dimensions do not match: {}x{} * {}x{}",
+                self.m, self.n, other.m, other.n
+            );
+        }
         let mut result = Matrix::new(self.m, self.n);
         for i in 0..self.m {
             for j in 0..self.n {
@@ -127,6 +140,56 @@ impl Matrix {
             }
         }
         result
+    }
+
+    pub fn normalize(&self) -> Matrix {
+        let mut result = Matrix::new(self.m, self.n);
+        for i in 0..self.n {
+            let mut min = std::f64::INFINITY;
+            let mut max = std::f64::NEG_INFINITY;
+            for j in 0..self.m {
+                if self[(j, i)] < min {
+                    min = self[(j, i)];
+                }
+                if self[(j, i)] > max {
+                    max = self[(j, i)];
+                }
+            }
+
+            let range = max - min;
+            for j in 0..self.m {
+                result[(j, i)] = (self[(j, i)] - min) / range;
+            }
+        }
+        result
+    }
+
+    pub fn slice_x(&self, range: std::ops::Range<usize>) -> Matrix {
+        let mut result = Matrix::new(self.m, range.len());
+        for i in 0..self.m {
+            for j in range.clone() {
+                result[(i, j - range.start)] = self[(i, j)];
+            }
+        }
+        result
+    }
+
+    pub fn slice_y(&self, range: std::ops::Range<usize>) -> Matrix {
+        let mut result = Matrix::new(range.len(), self.n);
+        for i in range.clone() {
+            for j in 0..self.n {
+                result[(i - range.start, j)] = self[(i, j)];
+            }
+        }
+        result
+    }
+
+    pub fn clear(&mut self) {
+        for i in 0..self.m {
+            for j in 0..self.n {
+                self[(i, j)] = 0.0;
+            }
+        }
     }
 }
 
@@ -159,5 +222,17 @@ impl PartialEq for Matrix {
             }
         }
         true
+    }
+}
+
+impl std::fmt::Display for Matrix {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        for i in 0..self.m {
+            for j in 0..self.n {
+                write!(f, "{:.5} ", self[(i, j)])?;
+            }
+            writeln!(f)?;
+        }
+        Ok(())
     }
 }

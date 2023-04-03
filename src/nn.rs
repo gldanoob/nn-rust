@@ -1,6 +1,5 @@
 use crate::linalg::Matrix;
-
-pub struct NN {
+pub struct MLP {
     layers: Vec<usize>,
     a: Vec<Matrix>,
     z: Vec<Matrix>,
@@ -12,9 +11,9 @@ pub struct NN {
     dcdw: Vec<Matrix>,
 }
 
-impl NN {
+impl MLP {
     // layers: [2, 5, 1] means 2 input neurons, 5 hidden neurons, 1 output neuron
-    pub fn new(layers: &[usize]) -> NN {
+    pub fn new(layers: &[usize]) -> MLP {
         if layers.len() < 2 {
             panic!("At least 2 layers required (Input and output layer)");
         }
@@ -36,13 +35,14 @@ impl NN {
             w.push(Matrix::new(dim[1], dim[0]).randomize());
             dcdw.push(Matrix::new(dim[1], dim[0]));
         }
+
         for l in layers[1..].iter() {
             z.push(Matrix::new(*l, 1));
             a.push(Matrix::new(*l, 1));
             b.push(Matrix::new(*l, 1).randomize());
             dcdb.push(Matrix::new(*l, 1));
         }
-        NN {
+        MLP {
             layers: layers.to_vec(),
             a,
             z,
@@ -65,16 +65,21 @@ impl NN {
     }
 
     // Calculate the gradient of the cost function with respect to the weights and biases of all layers
-    fn backpropagate(&mut self, target: &Matrix) {
+    fn backpropagate(&mut self, inputs: &Matrix, target: &Matrix) {
         // For output layer, dc/da = 2(a - y) where y is the target
         // But I ignored the coefficient which will be cancelled out when calculating the gradient descent
-        let dcda = self.output().sub(&target);
+        let mut dcda = self.output().sub(&target);
 
         for i in self.layer_indices().rev() {
             let dcdz = dcda.hadamard(&self.z[i].map(|x| Self::dsigmoid(x)));
             let dcdb = dcdz.clone();
-            let dcdw = dcdz.dot(&self.a[i - 1].transpose());
-            let dcda = self.w[i].transpose().dot(&dcdz);
+
+            let a_prev = if i == 0 { inputs } else { &self.a[i - 1] };
+            let dcdw = dcdz.dot(&a_prev.transpose());
+
+            if i != 0 {
+                dcda = self.w[i].transpose().dot(&dcdz);
+            }
 
             // Update total gradients
             self.dcdb[i] = self.dcdb[i].add(&dcdb);
@@ -112,20 +117,23 @@ impl NN {
         }
 
         for i in 0..inputs.rows() {
-            let input = inputs.get_row(i);
-            let target = targets.get_row(i);
+            // Input and targets are column vectors
+            let input = inputs.get_row(i).transpose();
+            let target = targets.get_row(i).transpose();
 
             // Updates self.a and self.z
             self.feedforward(&input);
 
             // Updates self.dcdw and self.dcdb
-            self.backpropagate(&target);
+            self.backpropagate(&input, &target);
         }
 
         // Update weights and biases with the total gradients * learning rate
         for i in self.layer_indices() {
             self.b[i] = self.b[i].sub(&self.dcdb[i].scale(lr));
             self.w[i] = self.w[i].sub(&self.dcdw[i].scale(lr));
+            self.dcdb[i].clear();
+            self.dcdw[i].clear();
         }
     }
 
