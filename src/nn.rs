@@ -146,4 +146,5 @@ impl MLP {
     pub fn output(&self) -> Matrix {
         self.a.last().unwrap().clone()
     }
+
 }

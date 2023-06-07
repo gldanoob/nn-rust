@@ -1,4 +1,4 @@
-use std::ops::*;
+use std::{ops::*, process::Output};
 
 #[derive(Debug, Clone)]
 pub struct Matrix {
@@ -199,6 +199,14 @@ impl Index<(usize, usize)> for Matrix {
     fn index(&self, index: (usize, usize)) -> &f64 {
         let (i, j) = index;
         &self.arr[i * self.n + j]
+    }
+}
+
+impl Index<usize> for Matrix {
+    type Output = [f64];
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.arr[self.m * index..self.m * (index + 1)]
     }
 }
 
